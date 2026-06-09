@@ -19,22 +19,12 @@ KAFKA_BROKER    = os.getenv("KAFKA_BROKER", "localhost:9092")
 KAFKA_TOPIC     = os.getenv("KAFKA_TOPIC", "live_orders")
 KAFKA_GROUP_ID  = "grubgrid_order_consumer"
 
-POSTGRES_HOST   = os.getenv("POSTGRES_HOST", "localhost")
-POSTGRES_PORT   = os.getenv("POSTGRES_PORT", "5432")
-POSTGRES_DB     = os.getenv("POSTGRES_DB", "grubgrid")
-POSTGRES_USER   = os.getenv("POSTGRES_USER", "grubgrid_user")
-POSTGRES_PASS   = os.getenv("POSTGRES_PASSWORD", "grubgrid_pass")
+POSTGRES_CONN = os.getenv("NEON_CONN_STR", "postgresql://neondb_owner:npg_2JvT7gUCOMSy@ep-rapid-darkness-ao16vhgr-pooler.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require")
 
 
 # ─── Database ─────────────────────────────────────────────
 def get_db_connection():
-    return psycopg2.connect(
-        host=POSTGRES_HOST,
-        port=POSTGRES_PORT,
-        dbname=POSTGRES_DB,
-        user=POSTGRES_USER,
-        password=POSTGRES_PASS,
-    )
+    return psycopg2.connect(POSTGRES_CONN)
 
 
 def insert_order(conn, order: dict):
