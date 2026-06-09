@@ -12,13 +12,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DB_CONFIG = {
-    "host":     os.getenv("POSTGRES_HOST", "localhost"),
-    "port":     int(os.getenv("POSTGRES_PORT", 5432)),
-    "dbname":   os.getenv("POSTGRES_DB", "grubgrid"),
-    "user":     os.getenv("POSTGRES_USER", "grubgrid_user"),
-    "password": os.getenv("POSTGRES_PASSWORD", "grubgrid_pass"),
-}
+DB_CONN = os.getenv("NEON_CONN_STR", "postgresql://neondb_owner:npg_2JvT7gUCOMSy@ep-rapid-darkness-ao16vhgr-pooler.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require")
 
 st.set_page_config(page_title="GrubGrid Price Alerts", page_icon="🍔", layout="wide")
 st.title("🍔 GrubGrid — Competitor Price Alert Dashboard")
@@ -27,7 +21,7 @@ st.caption("Real-time view of where competitors are undercutting our menu prices
 
 @st.cache_data(ttl=60)
 def load_data():
-    conn = psycopg2.connect(**DB_CONFIG)
+    conn = psycopg2.connect(DB_CONN)
     df = pd.read_sql("""
         SELECT
             restaurant_name,
@@ -48,7 +42,7 @@ def load_data():
 try:
     df = load_data()
 except Exception as e:
-    st.error(f"Could not connect to PostgreSQL: {e}")
+    st.error(f"Could not connect to Neon: {e}")
     st.stop()
 
 # ── Sidebar filters ──────────────────────────────────────────────────────────
