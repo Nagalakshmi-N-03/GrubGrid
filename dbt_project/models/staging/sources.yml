@@ -1,0 +1,15 @@
+version: 2
+
+sources:
+  - name: grubgrid_raw
+    description: "Raw tables in PostgreSQL public schema"
+    schema: public
+    tables:
+      - name: raw_orders
+        description: "Live orders streamed from Kafka consumer"
+      - name: competitor_prices
+        description: "Daily competitor price snapshots from scraper"
+      - name: restaurants
+        description: "Restaurant master data"
+      - name: menu_items
+        description: "Menu item master data"

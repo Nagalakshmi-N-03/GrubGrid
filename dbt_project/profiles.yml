@@ -1,0 +1,12 @@
+grubgrid:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: localhost
+      port: 5432
+      dbname: grubgrid
+      user: grubgrid_user
+      password: grubgrid_pass
+      schema: dbt_grubgrid
+      threads: 4

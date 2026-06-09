@@ -1,0 +1,136 @@
+version: "3.8"
+
+x-airflow-common: &airflow-common
+  image: apache/airflow:2.9.1
+  env_file: .env
+  environment:
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://grubgrid_user:grubgrid_pass@postgres:5432/grubgrid
+    AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW__CORE__FERNET_KEY}
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./dbt_project:/opt/airflow/dbt_project
+    - ./forecasting:/opt/airflow/forecasting
+    - ./scraping:/opt/airflow/scraping
+    - ./alerting:/opt/airflow/alerting
+    - airflow_logs:/opt/airflow/logs
+  depends_on:
+    postgres:
+      condition: service_healthy
+  networks:
+    - grubgrid_net
+
+services:
+
+  # ─── Zookeeper (Kafka dependency) ───────────────────────
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    container_name: grubgrid_zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - grubgrid_net
+
+  # ─── Kafka Broker ───────────────────────────────────────
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: grubgrid_kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    networks:
+      - grubgrid_net
+
+  # ─── PostgreSQL ─────────────────────────────────────────
+  postgres:
+    image: postgres:15
+    platform: linux/amd64
+    container_name: grubgrid_postgres
+    env_file: .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "grubgrid_user", "-d", "grubgrid"]
+      interval: 10s
+      retries: 5
+      start_period: 10s
+    networks:
+      - grubgrid_net
+
+  # ─── Airflow Init ───────────────────────────────────────
+  airflow-init:
+    <<: *airflow-common
+    container_name: grubgrid_airflow_init
+    command: >
+      bash -c "
+        airflow db migrate &&
+        airflow users create
+          --username admin
+          --password admin
+          --firstname Admin
+          --lastname User
+          --role Admin
+          --email admin@grubgrid.com
+      "
+    restart: on-failure
+
+  # ─── Airflow Webserver ──────────────────────────────────
+  airflow-webserver:
+    <<: *airflow-common
+    container_name: grubgrid_airflow_webserver
+    command: webserver
+    ports:
+      - "8080:8080"
+    restart: always
+
+  # ─── Airflow Scheduler ──────────────────────────────────
+  airflow-scheduler:
+    <<: *airflow-common
+    container_name: grubgrid_airflow_scheduler
+    command: scheduler
+    restart: always
+
+  # ─── Grafana ────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: grubgrid_grafana
+    env_file: .env
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GF_SECURITY_ADMIN_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD}
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./dashboards/grafana_provisioning:/etc/grafana/provisioning
+    depends_on:
+      - postgres
+    networks:
+      - grubgrid_net
+
+volumes:
+  postgres_data:
+  grafana_data:
+  airflow_logs:
+
+networks:
+  grubgrid_net:
+    driver: bridge

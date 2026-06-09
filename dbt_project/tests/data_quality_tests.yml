@@ -1,0 +1,74 @@
+version: 2
+
+models:
+  - name: stg_orders
+    description: "Cleaned orders from raw_orders"
+    columns:
+      - name: order_id
+        tests: [unique, not_null]
+      - name: total_price
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+      - name: quantity
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "> 0"
+      - name: status
+        tests:
+          - accepted_values:
+              values: ["placed", "preparing", "out_for_delivery", "delivered"]
+
+  - name: stg_competitor_prices
+    description: "Cleaned competitor price records"
+    columns:
+      - name: price_record_id
+        tests: [unique, not_null]
+      - name: our_price
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: "> 0"
+      - name: competitor_price
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: "> 0"
+      - name: alert_severity
+        tests:
+          - accepted_values:
+              values: ["low", "medium", "high", "critical"]
+
+  - name: dim_restaurants
+    description: "Restaurant dimension"
+    columns:
+      - name: restaurant_sk
+        tests: [unique, not_null]
+      - name: restaurant_id
+        tests: [unique, not_null]
+
+  - name: dim_menu_items
+    description: "Menu item dimension"
+    columns:
+      - name: item_sk
+        tests: [unique, not_null]
+      - name: price
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: "> 0"
+
+  - name: fact_orders
+    description: "Order fact table"
+    columns:
+      - name: order_id
+        tests: [unique, not_null]
+      - name: total_price
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+
+  - name: fact_competitor_prices
+    description: "Competitor price fact table"
+    columns:
+      - name: price_record_id
+        tests: [unique, not_null]
