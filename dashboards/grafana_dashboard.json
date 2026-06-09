@@ -1,0 +1,181 @@
+{
+  "__inputs": [],
+  "__requires": [
+    { "type": "datasource", "id": "postgres", "name": "PostgreSQL", "version": "1.0.0" }
+  ],
+  "annotations": { "list": [] },
+  "description": "GrubGrid Real-Time Order Monitoring Dashboard",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Total Orders Today",
+      "id": 1,
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
+      "options": { "colorMode": "background", "graphMode": "area", "justifyMode": "center", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        {
+          "rawSql": "SELECT COUNT(*) AS value FROM raw_orders WHERE placed_at::date = CURRENT_DATE;",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Orders Last 60 Minutes",
+      "id": 2,
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
+      "options": { "colorMode": "background", "graphMode": "area", "justifyMode": "center", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        {
+          "rawSql": "SELECT COUNT(*) AS value FROM raw_orders WHERE placed_at >= NOW() - INTERVAL '60 minutes';",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Revenue Today (₹)",
+      "id": 3,
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
+      "options": { "colorMode": "background", "graphMode": "area", "justifyMode": "center", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        {
+          "rawSql": "SELECT COALESCE(SUM(total_price), 0) AS value FROM raw_orders WHERE placed_at::date = CURRENT_DATE;",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Active Restaurants",
+      "id": 4,
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        {
+          "rawSql": "SELECT COUNT(DISTINCT restaurant_id) AS value FROM raw_orders WHERE placed_at >= NOW() - INTERVAL '60 minutes';",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Price Alerts Today",
+      "id": 5,
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        {
+          "rawSql": "SELECT COUNT(*) AS value FROM competitor_prices WHERE is_undercut = TRUE AND scraped_at::date = CURRENT_DATE;",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Orders Per Minute (Live)",
+      "id": 6,
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "options": { "tooltip": { "mode": "single" } },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "lineWidth": 2, "fillOpacity": 10 } } },
+      "targets": [
+        {
+          "rawSql": "SELECT date_trunc('minute', placed_at) AS time, COUNT(*) AS orders FROM raw_orders WHERE placed_at >= NOW() - INTERVAL '1 hour' GROUP BY 1 ORDER BY 1;",
+          "format": "time_series"
+        }
+      ]
+    },
+    {
+      "type": "piechart",
+      "title": "Order Status Breakdown",
+      "id": 7,
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 4 },
+      "options": { "pieType": "pie", "tooltip": { "mode": "single" } },
+      "targets": [
+        {
+          "rawSql": "SELECT status AS metric, COUNT(*) AS value FROM raw_orders WHERE placed_at::date = CURRENT_DATE GROUP BY status;",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "type": "bargauge",
+      "title": "Top Restaurants by Orders (Last Hour)",
+      "id": 8,
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 4 },
+      "options": { "orientation": "horizontal", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        {
+          "rawSql": "SELECT restaurant_name AS metric, COUNT(*) AS value FROM raw_orders WHERE placed_at >= NOW() - INTERVAL '1 hour' GROUP BY restaurant_name ORDER BY value DESC LIMIT 8;",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Revenue Trend (Hourly)",
+      "id": 9,
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "options": { "tooltip": { "mode": "single" } },
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "green" }, "custom": { "lineWidth": 2, "fillOpacity": 15 }, "unit": "currencyINR" } },
+      "targets": [
+        {
+          "rawSql": "SELECT date_trunc('hour', placed_at) AS time, SUM(total_price) AS revenue FROM raw_orders WHERE placed_at >= NOW() - INTERVAL '24 hours' GROUP BY 1 ORDER BY 1;",
+          "format": "time_series"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Critical Price Alerts",
+      "id": 10,
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "options": { "sortBy": [{ "displayName": "price_gap", "desc": false }] },
+      "targets": [
+        {
+          "rawSql": "SELECT competitor_name, restaurant_name, item_name, our_price, competitor_price, price_gap FROM competitor_prices WHERE is_undercut = TRUE AND ABS(price_gap) >= 15 ORDER BY price_gap ASC LIMIT 20;",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "type": "bargauge",
+      "title": "Top Items by Order Volume Today",
+      "id": 11,
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
+      "options": { "orientation": "horizontal", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        {
+          "rawSql": "SELECT item_name AS metric, COUNT(*) AS value FROM raw_orders WHERE placed_at::date = CURRENT_DATE GROUP BY item_name ORDER BY value DESC LIMIT 10;",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Peak Hours by Restaurant",
+      "id": 12,
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
+      "targets": [
+        {
+          "rawSql": "SELECT restaurant_name, order_hour, order_count, is_peak_hour FROM peak_hours ORDER BY restaurant_name, order_hour;",
+          "format": "table"
+        }
+      ]
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "tags": ["grubgrid", "realtime", "orders"],
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "GrubGrid — Real-Time Order Monitoring",
+  "uid": "grubgrid-realtime",
+  "version": 1
+}
