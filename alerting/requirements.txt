@@ -1,5 +1,4 @@
 streamlit
-pg8000
+psycopg2
 pandas
 python-dotenv
-sqlalchemy
