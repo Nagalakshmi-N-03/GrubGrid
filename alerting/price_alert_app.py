@@ -30,7 +30,7 @@ st.caption("Real-time view of where competitors are undercutting our menu prices
 
 @st.cache_data(ttl=60)
 def load_data():
-    engine = create_engine(NEON_CONN)
+    engine = create_engine(NEON_CONN, connect_args={"ssl_context": ssl_context})
     with engine.connect() as conn:
         df = pd.read_sql(text("""
             SELECT
