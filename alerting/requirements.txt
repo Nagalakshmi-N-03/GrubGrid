@@ -1,5 +1,5 @@
-streamlit==1.35.0
-pg8000==1.31.2
-pandas==2.2.2
-python-dotenv==1.0.1
-sqlalchemy==2.0.36
+streamlit
+pg8000
+pandas
+python-dotenv
+sqlalchemy
