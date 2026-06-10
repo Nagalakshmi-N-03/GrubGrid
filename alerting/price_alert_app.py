@@ -15,7 +15,7 @@ load_dotenv()
 # ─── Connection ───────────────────────────────────────────
 NEON_CONN = os.getenv(
     "NEON_CONN_STR",
-    "postgresql+pg8000://neondb_owner:npg_2JvT7gUCOMSy@ep-rapid-darkness-ao16vhgr-pooler.c-2.ap-southeast-1.aws.neon.tech/neondb"
+    "postgresql+pg8000://neondb_owner:npg_2JvT7gUCOMSy@ep-rapid-darkness-ao16vhgr-pooler.c-2.ap-southeast-1.aws.neon.tech/neondb?ssl=require"
 )
 
 st.set_page_config(page_title="GrubGrid Price Alerts", page_icon="🍔", layout="wide")
@@ -25,7 +25,7 @@ st.caption("Real-time view of where competitors are undercutting our menu prices
 
 @st.cache_data(ttl=60)
 def load_data():
-    engine = create_engine(NEON_CONN, connect_args={"ssl_context": True})
+    engine = create_engine(NEON_CONN)
     with engine.connect() as conn:
         df = pd.read_sql(text("""
             SELECT
