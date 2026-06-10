@@ -13,9 +13,14 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ─── Connection ───────────────────────────────────────────
+import ssl
+ssl_context = ssl.create_default_context()
+ssl_context.check_hostname = False
+ssl_context.verify_mode = ssl.CERT_NONE
+
 NEON_CONN = os.getenv(
     "NEON_CONN_STR",
-    "postgresql+pg8000://neondb_owner:npg_2JvT7gUCOMSy@ep-rapid-darkness-ao16vhgr-pooler.c-2.ap-southeast-1.aws.neon.tech/neondb?ssl=require"
+    "postgresql+pg8000://neondb_owner:npg_2JvT7gUCOMSy@ep-rapid-darkness-ao16vhgr-pooler.c-2.ap-southeast-1.aws.neon.tech/neondb"
 )
 
 st.set_page_config(page_title="GrubGrid Price Alerts", page_icon="🍔", layout="wide")
