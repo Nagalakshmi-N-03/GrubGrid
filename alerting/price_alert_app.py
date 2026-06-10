@@ -1,10 +1,11 @@
 """
 price_alert_app.py
 Streamlit dashboard showing competitor price gaps.
-Uses pg8000 (pure Python) for Streamlit Cloud compatibility.
+Uses pg8000 with ssl_context for Neon DB on Streamlit Cloud.
 """
 
 import os
+import ssl
 import pandas as pd
 import streamlit as st
 from sqlalchemy import create_engine, text
@@ -12,12 +13,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# ─── Connection ───────────────────────────────────────────
-import ssl
-ssl_context = ssl.create_default_context()
-ssl_context.check_hostname = False
-ssl_context.verify_mode = ssl.CERT_NONE
+# ─── SSL Context for Neon ─────────────────────────────────
+ssl_ctx = ssl.create_default_context()
+ssl_ctx.check_hostname = False
+ssl_ctx.verify_mode = ssl.CERT_NONE
 
+# ─── Connection ───────────────────────────────────────────
 NEON_CONN = os.getenv(
     "NEON_CONN_STR",
     "postgresql+pg8000://neondb_owner:npg_2JvT7gUCOMSy@ep-rapid-darkness-ao16vhgr-pooler.c-2.ap-southeast-1.aws.neon.tech/neondb"
@@ -30,7 +31,10 @@ st.caption("Real-time view of where competitors are undercutting our menu prices
 
 @st.cache_data(ttl=60)
 def load_data():
-    engine = create_engine(NEON_CONN, connect_args={"ssl_context": ssl_context})
+    engine = create_engine(
+        NEON_CONN,
+        connect_args={"ssl_context": ssl_ctx}
+    )
     with engine.connect() as conn:
         df = pd.read_sql(text("""
             SELECT
